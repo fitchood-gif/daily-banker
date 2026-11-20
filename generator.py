@@ -9,11 +9,11 @@ BASE_URL = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY}
 
 # Target Odds Window
-MIN_ODDS = 1.08
-MAX_ODDS = 1.13
+MIN_ODDS = 1.07
+MAX_ODDS = 1.15
 
 # High-scoring leagues (Premier League, Bundesliga, Eredivisie, La Liga, Serie A)
-TARGET_LEAGUES = {39, 78, 88, 140, 135}
+TARGET_LEAGUES = {39, 40, 78, 79, 88, 94, 135, 140, 144, 179}
 
 
 def get_todays_fixtures():
