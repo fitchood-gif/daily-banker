@@ -20,7 +20,7 @@
             <div>
                 <div class="flex items-center gap-2">
                     <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold px-2.5 py-0.5 rounded-full">PERSONAL TRACKER</span>
-                    <span class="text-slate-500 text-xs mono">TARGET ODDS: 1.08 – 1.13</span>
+                    <span id="dataSourceBadge" class="text-slate-500 text-xs mono">MODE: LOADING...</span>
                 </div>
                 <h1 class="text-2xl md:text-3xl font-bold tracking-tight mt-1">100-Day 1.10 Challenge</h1>
             </div>
@@ -29,11 +29,11 @@
             <div class="flex flex-wrap items-center gap-3 bg-slate-900 p-3 rounded-xl border border-slate-800">
                 <div>
                     <label class="block text-[10px] uppercase tracking-wider text-slate-400">Initial Stake (£)</label>
-                    <input type="number" id="initialStakeInput" value="50" min="1" onchange="resetSimulation()"
+                    <input type="number" id="initialStakeInput" value="50" min="1" onchange="updateInitialStake()"
                         class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1 text-sm mono w-24 focus:outline-none focus:border-emerald-500">
                 </div>
                 <div class="flex items-center gap-2 pl-2 border-l border-slate-800">
-                    <input type="checkbox" id="safetyNetToggle" checked onchange="renderDashboard()" class="w-4 h-4 accent-emerald-500 rounded">
+                    <input type="checkbox" id="safetyNetToggle" checked onchange="toggleSafetyNet()" class="w-4 h-4 accent-emerald-500 rounded">
                     <label for="safetyNetToggle" class="text-xs text-slate-300 cursor-pointer">
                         Day 8 Safety Net<br>
                         <span class="text-[10px] text-slate-500">Bank initial stake at 2x</span>
@@ -78,11 +78,11 @@
             <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <span id="pickStatusHeader" class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                             Today's High-Confidence Selection
                         </span>
-                        <span id="kickoffTime" class="text-xs text-slate-400 mono">Today • 19:45 GMT</span>
+                        <span id="kickoffTime" class="text-xs text-slate-400 mono">Today</span>
                     </div>
 
                     <div class="mt-5 p-4 bg-slate-950 rounded-xl border border-slate-800/80">
@@ -108,8 +108,8 @@
                                 <p id="statHitRate" class="text-sm font-semibold mono text-emerald-400 mt-0.5">100% (10/10)</p>
                             </div>
                             <div>
-                                <p class="text-[11px] text-slate-400">Combined xG</p>
-                                <p id="statXg" class="text-sm font-semibold mono text-slate-200 mt-0.5">3.42 xG</p>
+                                <p class="text-[11px] text-slate-400">Odds Guardrail</p>
+                                <p id="statBand" class="text-sm font-semibold mono text-slate-200 mt-0.5">1.08 – 1.13</p>
                             </div>
                             <div>
                                 <p class="text-[11px] text-slate-400">Implied Prob.</p>
@@ -122,14 +122,14 @@
                 <!-- Action Buttons -->
                 <div class="mt-6 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
-                        <button onclick="logResult('WIN')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition cursor-pointer">
+                        <button id="winBtn" onclick="logResult('WIN')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition cursor-pointer">
                             ✓ Mark Won (+10%)
                         </button>
-                        <button onclick="logResult('LOSS')" class="bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 font-semibold text-sm px-4 py-2.5 rounded-xl transition cursor-pointer">
+                        <button id="lossBtn" onclick="logResult('LOSS')" class="bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 font-semibold text-sm px-4 py-2.5 rounded-xl transition cursor-pointer">
                             ✕ Mark Lost
                         </button>
                     </div>
-                    <button onclick="cycleSampleFixture()" class="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl transition cursor-pointer">
+                    <button id="demoCycleBtn" onclick="cycleSampleFixture()" class="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl transition cursor-pointer">
                         ↻ Simulate Next Fixture
                     </button>
                 </div>
@@ -165,8 +165,8 @@
                     <li class="flex items-start gap-2.5 bg-slate-950 p-3 rounded-lg border border-slate-800/80">
                         <span class="text-emerald-400 font-bold">✓</span>
                         <div>
-                            <p class="font-semibold text-slate-200">Skip-Day Ready</p>
-                            <p class="text-slate-500">Outputs "NO BET" if zero fixtures qualify.</p>
+                            <p class="font-semibold text-slate-200">Persistent Browser Save</p>
+                            <p class="text-slate-500">Auto-saves your progress locally across sessions.</p>
                         </div>
                     </li>
                 </ul>
@@ -175,18 +175,26 @@
 
         <!-- 100-Day Audit Log Table -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-            <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div class="p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h3 class="font-semibold text-base">Rollover Audit Log</h3>
                     <p class="text-xs text-slate-400">Tracks daily stakes, banked safety nets, and match outcomes.</p>
                 </div>
-                <button onclick="resetSimulation()" class="text-xs text-slate-400 hover:text-rose-400 transition cursor-pointer">Reset Tracker</button>
+                <div class="flex items-center gap-3">
+                    <button onclick="exportToCSV()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition cursor-pointer">
+                        ↓ Export CSV
+                    </button>
+                    <button onclick="confirmReset()" class="text-xs text-slate-400 hover:text-rose-400 transition cursor-pointer">
+                        Reset Tracker
+                    </button>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-950 text-slate-400 text-xs uppercase mono">
                         <tr>
                             <th class="py-3 px-4">Day</th>
+                            <th class="py-3 px-4">Date</th>
                             <th class="py-3 px-4">Fixture & Pick</th>
                             <th class="py-3 px-4">Odds</th>
                             <th class="py-3 px-4">Stake</th>
@@ -194,13 +202,7 @@
                             <th class="py-3 px-4">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="logTableBody" class="divide-y divide-slate-800/60 mono text-xs">
-                        <tr>
-                            <td colspan="6" class="py-8 text-center text-slate-500 font-sans">
-                                Click <strong>"Mark Won (+10%)"</strong> above to simulate your 100-day progression.
-                            </td>
-                        </tr>
-                    </tbody>
+                    <tbody id="logTableBody" class="divide-y divide-slate-800/60 mono text-xs"></tbody>
                 </table>
             </div>
         </div>
@@ -208,31 +210,117 @@
     </div>
 
     <script>
-        // Sample fixtures your Python backend will eventually feed into this UI
+        const STORAGE_KEY = 'daily_110_tracker_v1';
+
         const sampleFixtures = [
-            { league: "Germany • Bundesliga", match: "Bayern Munich vs FC Augsburg", pick: "Over 0.5 Total Match Goals", odds: 1.10, hitRate: "100% (10/10)", xg: "3.42 xG" },
-            { league: "Netherlands • Eredivisie", match: "PSV Eindhoven vs NEC Nijmegen", pick: "PSV Team Total Over 0.5", odds: 1.09, hitRate: "95% (19/20)", xg: "3.15 xG" },
-            { league: "England • Premier League", match: "Manchester City vs Southampton", pick: "Double Chance: Man City or Draw", odds: 1.08, hitRate: "100% (10/10)", xg: "2.88 xG" },
-            { league: "Spain • La Liga", match: "Real Madrid vs Getafe", pick: "Real Madrid Over 0.5 Goals", odds: 1.11, hitRate: "90% (9/10)", xg: "2.45 xG" }
+            { league: "Germany • Bundesliga", match: "Bayern Munich vs FC Augsburg", pick: "Over 0.5 Total Match Goals", odds: 1.10, hitRate: "100% (10/10)" },
+            { league: "Netherlands • Eredivisie", match: "PSV Eindhoven vs NEC Nijmegen", pick: "Goals Over/Under (Over 0.5)", odds: 1.09, hitRate: "95% (Last 10)" },
+            { league: "England • Premier League", match: "Manchester City vs Southampton", pick: "Double Chance (Home/Draw)", odds: 1.08, hitRate: "100% (Last 10)" },
+            { league: "Spain • La Liga", match: "Real Madrid vs Getafe", pick: "Goals Over/Under (Over 0.5)", odds: 1.11, hitRate: "90% (Last 10)" }
         ];
 
         let fixtureIndex = 0;
-        let currentDay = 1;
-        let currentBank = 50;
-        let bankedProfit = 0;
-        let safetyNetTriggered = false;
-        let logs = [];
+        let activePick = null;
+        let isLiveMode = false;
+
+        let state = {
+            initialStake: 50,
+            useSafetyNet: true,
+            currentDay: 1,
+            currentBank: 50,
+            bankedProfit: 0,
+            safetyNetTriggered: false,
+            logs: []
+        };
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                } catch (e) {
+                    console.error("Failed to parse saved state", e);
+                }
+            }
+            document.getElementById('initialStakeInput').value = state.initialStake;
+            document.getElementById('safetyNetToggle').checked = state.useSafetyNet;
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        async function loadLivePick() {
+            try {
+                const response = await fetch(`pick.json?t=${Date.now()}`);
+                if (!response.ok) throw new Error("No pick.json found");
+                const result = await response.json();
+
+                isLiveMode = true;
+                document.getElementById('dataSourceBadge').textContent = "MODE: LIVE API-FOOTBALL";
+                document.getElementById('dataSourceBadge').classList.replace('text-slate-500', 'text-emerald-400');
+                document.getElementById('demoCycleBtn').classList.add('hidden');
+
+                if (result.status === "PICK_FOUND" && result.data) {
+                    activePick = result.data;
+                    displayPick(activePick);
+                } else {
+                    activePick = null;
+                    document.getElementById('pickStatusHeader').innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span> SKIP DAY — PROTECTING BANKROLL`;
+                    document.getElementById('pickStatusHeader').classList.replace('text-emerald-400', 'text-amber-400');
+                    document.getElementById('leagueName').textContent = "All Target Leagues Scanned";
+                    document.getElementById('matchTitle').textContent = "NO BET TODAY";
+                    document.getElementById('marketPick').textContent = "Zero fixtures passed all statistical guardrails";
+                    document.getElementById('pickOdds').textContent = "—";
+                    document.getElementById('statHitRate').textContent = "—";
+                    document.getElementById('statProb').textContent = "—";
+                    document.getElementById('winBtn').disabled = true;
+                    document.getElementById('lossBtn').disabled = true;
+                    document.getElementById('winBtn').classList.add('opacity-40', 'cursor-not-allowed');
+                    document.getElementById('lossBtn').classList.add('opacity-40', 'cursor-not-allowed');
+                }
+            } catch (err) {
+                isLiveMode = false;
+                document.getElementById('dataSourceBadge').textContent = "MODE: INTERACTIVE DEMO";
+                activePick = sampleFixtures[fixtureIndex];
+                displayPick(activePick);
+            }
+        }
+
+        function displayPick(p) {
+            document.getElementById('leagueName').textContent = p.league;
+            document.getElementById('matchTitle').textContent = p.match;
+            document.getElementById('marketPick').textContent = p.pick;
+            document.getElementById('pickOdds').textContent = Number(p.odds).toFixed(2);
+            document.getElementById('statHitRate').textContent = p.hitRate;
+            document.getElementById('statProb').textContent = p.prob || (((1 / p.odds) * 100).toFixed(1) + "%");
+            if (p.kickoff) {
+                const dt = new Date(p.kickoff);
+                document.getElementById('kickoffTime').textContent = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " UTC";
+            }
+        }
 
         function cycleSampleFixture() {
+            if (isLiveMode) return;
             fixtureIndex = (fixtureIndex + 1) % sampleFixtures.length;
-            const f = sampleFixtures[fixtureIndex];
-            document.getElementById('leagueName').textContent = f.league;
-            document.getElementById('matchTitle').textContent = f.match;
-            document.getElementById('marketPick').textContent = f.pick;
-            document.getElementById('pickOdds').textContent = f.odds.toFixed(2);
-            document.getElementById('statHitRate').textContent = f.hitRate;
-            document.getElementById('statXg').textContent = f.xg;
-            document.getElementById('statProb').textContent = ((1 / f.odds) * 100).toFixed(1) + "%";
+            activePick = sampleFixtures[fixtureIndex];
+            displayPick(activePick);
+        }
+
+        function updateInitialStake() {
+            const val = parseFloat(document.getElementById('initialStakeInput').value) || 50;
+            state.initialStake = val;
+            if (state.logs.length === 0) {
+                state.currentBank = val;
+            }
+            saveState();
+            renderDashboard();
+        }
+
+        function toggleSafetyNet() {
+            state.useSafetyNet = document.getElementById('safetyNetToggle').checked;
+            saveState();
+            renderDashboard();
         }
 
         function calculateDay100Projection(initialStake, useSafetyNet) {
@@ -249,91 +337,122 @@
         }
 
         function logResult(outcome) {
-            if (currentDay > 100) return;
+            if (state.currentDay > 100 || !activePick) return;
 
-            const f = sampleFixtures[fixtureIndex];
-            const initialStake = parseFloat(document.getElementById('initialStakeInput').value) || 50;
-            const useSafetyNet = document.getElementById('safetyNetToggle').checked;
-            const stakeUsed = currentBank;
+            const stakeUsed = state.currentBank;
+            const oddsUsed = Number(activePick.odds);
+            const todayDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 
             if (outcome === 'WIN') {
-                let payout = stakeUsed * f.odds;
+                let payout = stakeUsed * oddsUsed;
                 let note = "";
 
-                // Trigger Day 8 Safety Net (withdraw original stake once doubled)
-                if (useSafetyNet && !safetyNetTriggered && payout >= initialStake * 2) {
-                    payout -= initialStake;
-                    bankedProfit += initialStake;
-                    safetyNetTriggered = true;
-                    note = ` (Banked £${initialStake.toFixed(2)} initial stake)`;
+                if (state.useSafetyNet && !state.safetyNetTriggered && payout >= state.initialStake * 2) {
+                    payout -= state.initialStake;
+                    state.bankedProfit += state.initialStake;
+                    state.safetyNetTriggered = true;
+                    note = ` (Banked £${state.initialStake.toFixed(2)} initial stake)`;
                 }
 
-                logs.unshift({
-                    day: currentDay,
-                    match: `${f.match} — ${f.pick}${note}`,
-                    odds: f.odds.toFixed(2),
-                    stake: `£${stakeUsed.toFixed(2)}`,
-                    payout: `£${payout.toFixed(2)}`,
+                state.logs.unshift({
+                    day: state.currentDay,
+                    date: todayDate,
+                    match: `${activePick.match} — ${activePick.pick}${note}`,
+                    odds: oddsUsed.toFixed(2),
+                    stake: stakeUsed.toFixed(2),
+                    payout: payout.toFixed(2),
                     status: 'WON'
                 });
 
-                currentBank = payout;
-                currentDay++;
-                cycleSampleFixture();
+                state.currentBank = payout;
+                state.currentDay++;
+                if (!isLiveMode) cycleSampleFixture();
             } else {
-                logs.unshift({
-                    day: currentDay,
-                    match: `${f.match} — ${f.pick}`,
-                    odds: f.odds.toFixed(2),
-                    stake: `£${stakeUsed.toFixed(2)}`,
-                    payout: `£0.00`,
+                state.logs.unshift({
+                    day: state.currentDay,
+                    date: todayDate,
+                    match: `${activePick.match} — ${activePick.pick}`,
+                    odds: oddsUsed.toFixed(2),
+                    stake: stakeUsed.toFixed(2),
+                    payout: "0.00",
                     status: 'LOST'
                 });
-                currentBank = 0;
+                state.currentBank = 0;
             }
 
+            saveState();
             renderDashboard();
         }
 
-        function resetSimulation() {
-            const initialStake = parseFloat(document.getElementById('initialStakeInput').value) || 50;
-            currentDay = 1;
-            currentBank = initialStake;
-            bankedProfit = 0;
-            safetyNetTriggered = false;
-            logs = [];
-            renderDashboard();
+        function confirmReset() {
+            if (confirm("Reset your 100-day streak and clear the audit log?")) {
+                const val = parseFloat(document.getElementById('initialStakeInput').value) || 50;
+                state = {
+                    initialStake: val,
+                    useSafetyNet: document.getElementById('safetyNetToggle').checked,
+                    currentDay: 1,
+                    currentBank: val,
+                    bankedProfit: 0,
+                    safetyNetTriggered: false,
+                    logs: []
+                };
+                saveState();
+                renderDashboard();
+            }
+        }
+
+        function exportToCSV() {
+            if (state.logs.length === 0) {
+                alert("No entries in the audit log to export yet.");
+                return;
+            }
+            const headers = ["Day", "Date", "Fixture & Pick", "Odds", "Stake (£)", "Return (£)", "Status"];
+            const rows = state.logs.slice().reverse().map(r => [
+                r.day,
+                r.date,
+                `"${r.match.replace(/"/g, '""')}"`,
+                r.odds,
+                r.stake,
+                r.payout,
+                r.status
+            ]);
+            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `100_day_challenge_log_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function renderDashboard() {
-            const initialStake = parseFloat(document.getElementById('initialStakeInput').value) || 50;
-            const useSafetyNet = document.getElementById('safetyNetToggle').checked;
-
-            document.getElementById('currentDayDisplay').textContent = Math.min(currentDay, 100);
-            document.getElementById('progressBar').style.width = `${Math.min(currentDay, 100)}%`;
-            document.getElementById('currentBankDisplay').textContent = `£${currentBank.toFixed(2)}`;
-            document.getElementById('bankedProfitDisplay').textContent = `£${bankedProfit.toFixed(2)}`;
+            document.getElementById('currentDayDisplay').textContent = Math.min(state.currentDay, 100);
+            document.getElementById('progressBar').style.width = `${Math.min(state.currentDay, 100)}%`;
+            document.getElementById('currentBankDisplay').textContent = `£${state.currentBank.toFixed(2)}`;
+            document.getElementById('bankedProfitDisplay').textContent = `£${state.bankedProfit.toFixed(2)}`;
             
-            const proj = calculateDay100Projection(initialStake, useSafetyNet);
+            const proj = calculateDay100Projection(state.initialStake, state.useSafetyNet);
             document.getElementById('projectedTotalDisplay').textContent = `£${proj.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-            document.getElementById('safetyStatusText').textContent = safetyNetTriggered 
+            document.getElementById('safetyStatusText').textContent = state.safetyNetTriggered 
                 ? "Initial stake recovered!" 
-                : (useSafetyNet ? "Unlocks at 2x bank" : "Safety net disabled");
+                : (state.useSafetyNet ? "Unlocks at 2x bank" : "Safety net disabled");
 
             const tbody = document.getElementById('logTableBody');
-            if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 font-sans">Click <strong>"Mark Won (+10%)"</strong> above to simulate your 100-day progression.</td></tr>`;
+            if (state.logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500 font-sans">Click <strong>"Mark Won (+10%)"</strong> above to log your daily results. Progress saves automatically.</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = logs.map(row => `
+            tbody.innerHTML = state.logs.map(row => `
                 <tr class="hover:bg-slate-800/40">
                     <td class="py-3 px-4 font-bold text-slate-300">Day ${row.day}</td>
+                    <td class="py-3 px-4 text-slate-400">${row.date}</td>
                     <td class="py-3 px-4 font-sans text-slate-200">${row.match}</td>
                     <td class="py-3 px-4 text-slate-400">${row.odds}</td>
-                    <td class="py-3 px-4 text-slate-300">${row.stake}</td>
-                    <td class="py-3 px-4 font-semibold ${row.status === 'WON' ? 'text-emerald-400' : 'text-rose-400'}">${row.payout}</td>
+                    <td class="py-3 px-4 text-slate-300">£${row.stake}</td>
+                    <td class="py-3 px-4 font-semibold ${row.status === 'WON' ? 'text-emerald-400' : 'text-rose-400'}">£${row.payout}</td>
                     <td class="py-3 px-4">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.status === 'WON' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
                             ${row.status}
@@ -343,8 +462,9 @@
             `).join('');
         }
 
-        // Initialize on load
+        loadState();
         renderDashboard();
+        loadLivePick();
     </script>
 </body>
 </html>
