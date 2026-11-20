@@ -3,8 +3,11 @@ import json
 import requests
 from datetime import datetime, timezone
 
-# Reads your API key safely from GitHub Secrets
+# Reads your keys safely from GitHub Secrets
 API_KEY = os.environ.get("API_FOOTBALL_KEY")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+
 BASE_URL = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY}
 
@@ -12,8 +15,27 @@ HEADERS = {"x-apisports-key": API_KEY}
 MIN_ODDS = 1.07
 MAX_ODDS = 1.15
 
-# High-scoring leagues (Premier League, Bundesliga, Eredivisie, La Liga, Serie A)
+# High-scoring leagues (EPL, Championship, Bundesliga, 2. Bundesliga, Eredivisie, Portugal, Serie A, La Liga, Belgium, Scotland)
 TARGET_LEAGUES = {39, 40, 78, 79, 88, 94, 135, 140, 144, 179}
+
+
+def send_telegram_alert(message):
+    """Send daily pick directly to your Telegram."""
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Telegram secrets not set; skipping alert.")
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
+    try:
+        requests.post(url, json=payload, timeout=10)
+        print("Telegram alert sent!")
+    except Exception as e:
+        print(f"Telegram alert failed: {e}")
 
 
 def get_todays_fixtures():
@@ -28,7 +50,7 @@ def get_todays_fixtures():
 
 
 def check_fixture_odds(fixture_id):
-    """Check pre-match odds for Over 0.5 Goals or Double Chance in the 1.08 - 1.13 band."""
+    """Check pre-match odds for Over 0.5 Goals or Double Chance in the target band."""
     url = f"{BASE_URL}/odds"
     params = {"fixture": fixture_id}
     
@@ -40,7 +62,6 @@ def check_fixture_odds(fixture_id):
     bets = odds_data[0].get("bookmakers", [{}])[0].get("bets", [])
     
     for bet in bets:
-        # Bet ID 5 = Goals Over/Under | Bet ID 12 = Double Chance
         if bet["id"] in [5, 12]:
             for val in bet["values"]:
                 odd_price = float(val["odd"])
@@ -86,17 +107,14 @@ def generate_daily_pick():
         away = f["teams"]["away"]
         league = f["league"]
 
-        # Skip early season variance (first 5 rounds)
         round_str = league.get("round", "")
         if any(f"- {i}" in round_str for i in range(1, 6)):
             continue
 
-        # Check if pre-match odds fall in 1.08 - 1.13
         odds_match = check_fixture_odds(fixture_id)
         if not odds_match:
             continue
 
-        # Verify 90%+ hit rate over last 10 matches for both teams
         home_rate = verify_team_hit_rate(home["id"])
         away_rate = verify_team_hit_rate(away["id"])
 
@@ -117,9 +135,20 @@ def generate_daily_pick():
         best_pick = sorted(qualified_picks, key=lambda x: x["hitRate"], reverse=True)[0]
         output = {"status": "PICK_FOUND", "data": best_pick}
         print(f"BEST PICK FOUND: {best_pick['match']} | {best_pick['pick']} @ {best_pick['odds']}")
+        
+        msg = (
+            f"⚽ *1.10 DAILY BANKER*\n\n"
+            f"*Match:* {best_pick['match']}\n"
+            f"*League:* {best_pick['league']}\n"
+            f"*Pick:* {best_pick['pick']}\n"
+            f"*Odds:* `{best_pick['odds']}` ({best_pick['hitRate']})\n\n"
+            f"📊 [Open Rollover Tracker](https://fitchood-gif.github.io/daily-banker/)"
+        )
+        send_telegram_alert(msg)
     else:
         output = {"status": "NO_BET_TODAY", "data": None}
         print("NO BET TODAY: No fixtures met all statistical guardrails.")
+        send_telegram_alert("🛡️ *1.10 Daily Banker:* No fixtures passed all statistical guardrails today. Protecting the bankroll!")
 
     with open("pick.json", "w") as outfile:
         json.dump(output, outfile, indent=4)
