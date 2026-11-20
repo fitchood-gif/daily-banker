@@ -2,9 +2,8 @@ name: Daily 1.10 Fixture Generator
 
 on:
   schedule:
-    # Runs every day at 09:00 UTC (09:00 GMT)
     - cron: '0 9 * * *'
-  workflow_dispatch: # Allows you to click "Run workflow" manually anytime
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,20 +21,19 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install requests
         run: pip install requests
 
-- name: Run fixture generator
+      - name: Run fixture generator
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python generator.py
 
-      - name: Commit updated pick.json
+      - name: Commit and push updated pick.json
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "action@github.com"
           git add pick.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update daily 1.10 pick"
-          git push
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update daily 1.10 pick" && git push)
